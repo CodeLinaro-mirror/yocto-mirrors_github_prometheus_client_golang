@@ -17,6 +17,7 @@ package v1
 
 import (
 	"context"
+	gojson "encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -745,13 +746,13 @@ type Stat struct {
 
 func (rg *RuleGroup) UnmarshalJSON(b []byte) error {
 	v := struct {
-		Name     string            `json:"name"`
-		File     string            `json:"file"`
-		Interval float64           `json:"interval"`
-		Rules    []json.RawMessage `json:"rules"`
+		Name     string              `json:"name"`
+		File     string              `json:"file"`
+		Interval float64             `json:"interval"`
+		Rules    []gojson.RawMessage `json:"rules"`
 	}{}
 
-	if err := json.Unmarshal(b, &v); err != nil {
+	if err := gojson.Unmarshal(b, &v); err != nil {
 		return err
 	}
 
@@ -761,12 +762,12 @@ func (rg *RuleGroup) UnmarshalJSON(b []byte) error {
 
 	for _, rule := range v.Rules {
 		alertingRule := AlertingRule{}
-		if err := json.Unmarshal(rule, &alertingRule); err == nil {
+		if err := gojson.Unmarshal(rule, &alertingRule); err == nil {
 			rg.Rules = append(rg.Rules, alertingRule)
 			continue
 		}
 		recordingRule := RecordingRule{}
-		if err := json.Unmarshal(rule, &recordingRule); err == nil {
+		if err := gojson.Unmarshal(rule, &recordingRule); err == nil {
 			rg.Rules = append(rg.Rules, recordingRule)
 			continue
 		}
@@ -780,7 +781,7 @@ func (r *AlertingRule) UnmarshalJSON(b []byte) error {
 	v := struct {
 		Type string `json:"type"`
 	}{}
-	if err := json.Unmarshal(b, &v); err != nil {
+	if err := gojson.Unmarshal(b, &v); err != nil {
 		return err
 	}
 	if v.Type == "" {
@@ -803,7 +804,7 @@ func (r *AlertingRule) UnmarshalJSON(b []byte) error {
 		LastEvaluation time.Time      `json:"lastEvaluation"`
 		State          string         `json:"state"`
 	}{}
-	if err := json.Unmarshal(b, &rule); err != nil {
+	if err := gojson.Unmarshal(b, &rule); err != nil {
 		return err
 	}
 	r.Health = rule.Health
@@ -825,7 +826,7 @@ func (r *RecordingRule) UnmarshalJSON(b []byte) error {
 	v := struct {
 		Type string `json:"type"`
 	}{}
-	if err := json.Unmarshal(b, &v); err != nil {
+	if err := gojson.Unmarshal(b, &v); err != nil {
 		return err
 	}
 	if v.Type == "" {
@@ -844,7 +845,7 @@ func (r *RecordingRule) UnmarshalJSON(b []byte) error {
 		EvaluationTime float64        `json:"evaluationTime"`
 		LastEvaluation time.Time      `json:"lastEvaluation"`
 	}{}
-	if err := json.Unmarshal(b, &rule); err != nil {
+	if err := gojson.Unmarshal(b, &rule); err != nil {
 		return err
 	}
 	r.Health = rule.Health
@@ -1296,7 +1297,7 @@ func (h *httpAPI) Rules(ctx context.Context, matches []string) (RulesResult, err
 	}
 
 	var res RulesResult
-	err = json.Unmarshal(body, &res)
+	err = gojson.Unmarshal(body, &res)
 	return res, err
 }
 

@@ -258,14 +258,14 @@ func BenchmarkRuleGroup(b *testing.B) {
 
 	b.Run("streaming", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			if err := jsoniter.NewDecoder(bytes.NewReader(data)).Decode(&RuleGroup{}); err != nil {
+			if err := json.NewDecoder(bytes.NewReader(data)).Decode(&RuleGroup{}); err != nil {
 				b.Fatal(err)
 			}
 		}
 	})
 	b.Run("unmarshal", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			if err := jsoniter.Unmarshal(data, &RuleGroup{}); err != nil {
+			if err := json.Unmarshal(data, &RuleGroup{}); err != nil {
 				b.Fatal(err)
 			}
 		}
