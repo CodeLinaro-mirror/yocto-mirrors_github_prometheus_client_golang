@@ -810,37 +810,11 @@ func (r *AlertingRule) UnmarshalJSON(b []byte) error {
 	return r.unmarshalTypeCheckedJSON(b)
 }
 
+type alertingRuleInternal AlertingRule
+
 // unmarshalTypeCheckedJSON unmarshals json with the type field already verified to be RuleTypeAlerting
 func (r *AlertingRule) unmarshalTypeCheckedJSON(b []byte) error {
-	rule := struct {
-		Name           string         `json:"name"`
-		Query          string         `json:"query"`
-		Duration       float64        `json:"duration"`
-		Labels         model.LabelSet `json:"labels"`
-		Annotations    model.LabelSet `json:"annotations"`
-		Alerts         []*Alert       `json:"alerts"`
-		Health         RuleHealth     `json:"health"`
-		LastError      string         `json:"lastError,omitempty"`
-		EvaluationTime float64        `json:"evaluationTime"`
-		LastEvaluation time.Time      `json:"lastEvaluation"`
-		State          string         `json:"state"`
-	}{}
-	if err := gojson.Unmarshal(b, &rule); err != nil {
-		return err
-	}
-	r.Health = rule.Health
-	r.Annotations = rule.Annotations
-	r.Name = rule.Name
-	r.Query = rule.Query
-	r.Alerts = rule.Alerts
-	r.Duration = rule.Duration
-	r.Labels = rule.Labels
-	r.LastError = rule.LastError
-	r.EvaluationTime = rule.EvaluationTime
-	r.LastEvaluation = rule.LastEvaluation
-	r.State = rule.State
-
-	return nil
+	return gojson.Unmarshal(b, (*alertingRuleInternal)(r))
 }
 
 func (r *RecordingRule) UnmarshalJSON(b []byte) error {
@@ -854,29 +828,11 @@ func (r *RecordingRule) UnmarshalJSON(b []byte) error {
 	return r.unmarshalTypeCheckedJSON(b)
 }
 
+type recordingRuleInternal RecordingRule
+
 // unmarshalTypeCheckedJSON unmarshals json with the type field already verified to be RuleTypeRecording
 func (r *RecordingRule) unmarshalTypeCheckedJSON(b []byte) error {
-	rule := struct {
-		Name           string         `json:"name"`
-		Query          string         `json:"query"`
-		Labels         model.LabelSet `json:"labels,omitempty"`
-		Health         RuleHealth     `json:"health"`
-		LastError      string         `json:"lastError,omitempty"`
-		EvaluationTime float64        `json:"evaluationTime"`
-		LastEvaluation time.Time      `json:"lastEvaluation"`
-	}{}
-	if err := gojson.Unmarshal(b, &rule); err != nil {
-		return err
-	}
-	r.Health = rule.Health
-	r.Labels = rule.Labels
-	r.Name = rule.Name
-	r.LastError = rule.LastError
-	r.Query = rule.Query
-	r.EvaluationTime = rule.EvaluationTime
-	r.LastEvaluation = rule.LastEvaluation
-
-	return nil
+	return gojson.Unmarshal(b, (*recordingRuleInternal)(r))
 }
 
 func (qr *queryResult) UnmarshalJSON(b []byte) error {
