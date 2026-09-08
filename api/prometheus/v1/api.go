@@ -1454,12 +1454,12 @@ type apiClientImpl struct {
 }
 
 type apiResponse struct {
-	Status    string          `json:"status"`
-	Data      json.RawMessage `json:"data"`
-	ErrorType ErrorType       `json:"errorType"`
-	Error     string          `json:"error"`
-	Warnings  []string        `json:"warnings,omitempty"`
-	Infos     []string        `json:"infos,omitempty"`
+	Status    string            `json:"status"`
+	Data      gojson.RawMessage `json:"data"`
+	ErrorType ErrorType         `json:"errorType"`
+	Error     string            `json:"error"`
+	Warnings  []string          `json:"warnings,omitempty"`
+	Infos     []string          `json:"infos,omitempty"`
 }
 
 func apiError(code int) bool {
@@ -1501,7 +1501,7 @@ func (h *apiClientImpl) Do(ctx context.Context, req *http.Request) (*http.Respon
 	var result apiResponse
 
 	if http.StatusNoContent != code {
-		if jsonErr := json.Unmarshal(body, &result); jsonErr != nil {
+		if jsonErr := gojson.Unmarshal(body, &result); jsonErr != nil {
 			return resp, body, nil, nil, &Error{
 				Type: ErrBadResponse,
 				Msg:  jsonErr.Error(),
