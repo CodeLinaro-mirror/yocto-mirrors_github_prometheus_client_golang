@@ -761,36 +761,57 @@ func (rg *RuleGroup) UnmarshalJSON(b []byte) error {
 	rg.Interval = v.Interval
 
 	for _, rule := range v.Rules {
-		alertingRule := AlertingRule{}
-		if err := gojson.Unmarshal(rule, &alertingRule); err == nil {
+		ruleType, err := unmarshalRuleType(rule)
+		if err != nil {
+			return err
+		}
+		switch ruleType {
+		case RuleTypeAlerting:
+			alertingRule := AlertingRule{}
+			if err := alertingRule.unmarshalTypeCheckedJSON(rule); err != nil {
+				return err
+			}
 			rg.Rules = append(rg.Rules, alertingRule)
-			continue
-		}
-		recordingRule := RecordingRule{}
-		if err := gojson.Unmarshal(rule, &recordingRule); err == nil {
+		case RuleTypeRecording:
+			recordingRule := RecordingRule{}
+			if err := recordingRule.unmarshalTypeCheckedJSON(rule); err != nil {
+				return err
+			}
 			rg.Rules = append(rg.Rules, recordingRule)
-			continue
+		default:
+			return errors.New("failed to decode JSON into an alerting or recording rule")
 		}
-		return errors.New("failed to decode JSON into an alerting or recording rule")
 	}
 
 	return nil
 }
 
-func (r *AlertingRule) UnmarshalJSON(b []byte) error {
+func unmarshalRuleType(b []byte) (RuleType, error) {
 	v := struct {
 		Type string `json:"type"`
 	}{}
 	if err := gojson.Unmarshal(b, &v); err != nil {
-		return err
+		return RuleType(""), err
 	}
 	if v.Type == "" {
-		return errors.New("type field not present in rule")
+		return RuleType(""), errors.New("type field not present in rule")
 	}
-	if v.Type != string(RuleTypeAlerting) {
-		return fmt.Errorf("expected rule of type %s but got %s", string(RuleTypeAlerting), v.Type)
-	}
+	return RuleType(v.Type), nil
+}
 
+func (r *AlertingRule) UnmarshalJSON(b []byte) error {
+	ruleType, err := unmarshalRuleType(b)
+	if err != nil {
+		return err
+	}
+	if ruleType != RuleTypeAlerting {
+		return fmt.Errorf("expected rule of type %s but got %s", string(RuleTypeAlerting), ruleType)
+	}
+	return r.unmarshalTypeCheckedJSON(b)
+}
+
+// unmarshalTypeCheckedJSON unmarshals json with the type field already verified to be RuleTypeAlerting
+func (r *AlertingRule) unmarshalTypeCheckedJSON(b []byte) error {
 	rule := struct {
 		Name           string         `json:"name"`
 		Query          string         `json:"query"`
@@ -823,19 +844,18 @@ func (r *AlertingRule) UnmarshalJSON(b []byte) error {
 }
 
 func (r *RecordingRule) UnmarshalJSON(b []byte) error {
-	v := struct {
-		Type string `json:"type"`
-	}{}
-	if err := gojson.Unmarshal(b, &v); err != nil {
+	ruleType, err := unmarshalRuleType(b)
+	if err != nil {
 		return err
 	}
-	if v.Type == "" {
-		return errors.New("type field not present in rule")
+	if ruleType != RuleTypeRecording {
+		return fmt.Errorf("expected rule of type %s but got %s", string(RuleTypeRecording), ruleType)
 	}
-	if v.Type != string(RuleTypeRecording) {
-		return fmt.Errorf("expected rule of type %s but got %s", string(RuleTypeRecording), v.Type)
-	}
+	return r.unmarshalTypeCheckedJSON(b)
+}
 
+// unmarshalTypeCheckedJSON unmarshals json with the type field already verified to be RuleTypeRecording
+func (r *RecordingRule) unmarshalTypeCheckedJSON(b []byte) error {
 	rule := struct {
 		Name           string         `json:"name"`
 		Query          string         `json:"query"`
