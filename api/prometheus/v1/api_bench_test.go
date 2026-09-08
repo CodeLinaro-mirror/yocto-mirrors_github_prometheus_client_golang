@@ -321,3 +321,129 @@ func BenchmarkRuleGroup(b *testing.B) {
 		}
 	})
 }
+
+func BenchmarkQueryResult(b *testing.B) {
+	scalarData, err := json.Marshal(queryResult{
+		Type:   model.ValScalar,
+		Result: &model.Scalar{Value: 2, Timestamp: model.TimeFromUnix(1234)},
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	vectorData, err := json.Marshal(queryResult{
+		Type:   model.ValVector,
+		Result: model.Vector{genSample(), genSample(), genSample(), genSample(), genSample(), genSample(), genSample(), genSample(), genSample(), genSample()},
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	floatMatrix, histogramMatrix := generateData(10, 10)
+	floatData, err := json.Marshal(queryResult{
+		Type:   model.ValMatrix,
+		Result: floatMatrix,
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	histogramData, err := json.Marshal(queryResult{
+		Type:   model.ValMatrix,
+		Result: histogramMatrix,
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.Run("scalar", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var q queryResult
+			if err := q.UnmarshalJSON(scalarData); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("vector", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var q queryResult
+			if err := q.UnmarshalJSON(vectorData); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("matrix-float", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var q queryResult
+			if err := q.UnmarshalJSON(floatData); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("matrix-histogram", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var q queryResult
+			if err := q.UnmarshalJSON(histogramData); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
+func genSample() *model.Sample {
+	return &model.Sample{
+		Metric: model.Metric{
+			"name": "test_metric",
+		},
+		Histogram: genSampleHistogram(),
+		Timestamp: 1234567,
+	}
+}
+
+func genSampleHistogram() *model.SampleHistogram {
+	return &model.SampleHistogram{
+		Count: 6,
+		Sum:   3897,
+		Buckets: model.HistogramBuckets{
+			{
+				Boundaries: 1,
+				Lower:      -4870.992343051145,
+				Upper:      -4466.7196729968955,
+				Count:      1,
+			},
+			{
+				Boundaries: 1,
+				Lower:      -861.0779292198035,
+				Upper:      -789.6119426088657,
+				Count:      1,
+			},
+			{
+				Boundaries: 1,
+				Lower:      -558.3399591246119,
+				Upper:      -512,
+				Count:      1,
+			},
+			{
+				Boundaries: 0,
+				Lower:      2048,
+				Upper:      2233.3598364984477,
+				Count:      1,
+			},
+			{
+				Boundaries: 0,
+				Lower:      2896.3093757400984,
+				Upper:      3158.4477704354626,
+				Count:      1,
+			},
+			{
+				Boundaries: 0,
+				Lower:      4466.7196729968955,
+				Upper:      4870.992343051145,
+				Count:      1,
+			},
+		},
+	}
+}
