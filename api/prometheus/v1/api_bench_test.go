@@ -105,9 +105,9 @@ func generateData(timeseries, datapoints int) (floatMatrix, histogramMatrix mode
 
 func BenchmarkSamplesJsonSerialization(b *testing.B) {
 	for _, timeseriesCount := range []int{10, 100, 1000} {
-		b.Run(strconv.Itoa(timeseriesCount), func(b *testing.B) {
+		b.Run("series="+strconv.Itoa(timeseriesCount), func(b *testing.B) {
 			for _, datapointCount := range []int{10, 100, 1000} {
-				b.Run(strconv.Itoa(datapointCount), func(b *testing.B) {
+				b.Run("dp="+strconv.Itoa(datapointCount), func(b *testing.B) {
 					floats, histograms := generateData(timeseriesCount, datapointCount)
 
 					floatBytes, err := json.Marshal(floats)
@@ -119,57 +119,57 @@ func BenchmarkSamplesJsonSerialization(b *testing.B) {
 						b.Fatalf("Error marshaling: %v", err)
 					}
 
-					b.Run("marshal", func(b *testing.B) {
-						b.Run("floats", func(b *testing.B) {
-							b.Run("json", func(b *testing.B) {
+					b.Run("op=marshal", func(b *testing.B) {
+						b.Run("type=floats", func(b *testing.B) {
+							b.Run("encoder=json", func(b *testing.B) {
 								b.ReportAllocs()
-								for i := 0; i < b.N; i++ {
+								for b.Loop() {
 									if _, err := json.Marshal(floats); err != nil {
 										b.Fatal(err)
 									}
 								}
 							})
 							if supportsJSONv2 {
-								b.Run("jsonv2", func(b *testing.B) {
+								b.Run("encoder=jsonv2", func(b *testing.B) {
 									b.ReportAllocs()
-									for i := 0; i < b.N; i++ {
+									for b.Loop() {
 										if _, err := jsonv2Marshal(floats); err != nil {
 											b.Fatal(err)
 										}
 									}
 								})
 							}
-							b.Run("jsoniter", func(b *testing.B) {
+							b.Run("encoder=jsoniter", func(b *testing.B) {
 								b.ReportAllocs()
-								for i := 0; i < b.N; i++ {
+								for b.Loop() {
 									if _, err := jsoniter.Marshal(floats); err != nil {
 										b.Fatal(err)
 									}
 								}
 							})
 						})
-						b.Run("histograms", func(b *testing.B) {
-							b.Run("json", func(b *testing.B) {
+						b.Run("type=histograms", func(b *testing.B) {
+							b.Run("encoder=json", func(b *testing.B) {
 								b.ReportAllocs()
-								for i := 0; i < b.N; i++ {
+								for b.Loop() {
 									if _, err := json.Marshal(histograms); err != nil {
 										b.Fatal(err)
 									}
 								}
 							})
 							if supportsJSONv2 {
-								b.Run("jsonv2", func(b *testing.B) {
+								b.Run("encoder=jsonv2", func(b *testing.B) {
 									b.ReportAllocs()
-									for i := 0; i < b.N; i++ {
+									for b.Loop() {
 										if _, err := jsonv2Marshal(histograms); err != nil {
 											b.Fatal(err)
 										}
 									}
 								})
 							}
-							b.Run("jsoniter", func(b *testing.B) {
+							b.Run("encoder=jsoniter", func(b *testing.B) {
 								b.ReportAllocs()
-								for i := 0; i < b.N; i++ {
+								for b.Loop() {
 									if _, err := jsoniter.Marshal(histograms); err != nil {
 										b.Fatal(err)
 									}
@@ -178,11 +178,11 @@ func BenchmarkSamplesJsonSerialization(b *testing.B) {
 						})
 					})
 
-					b.Run("unmarshal", func(b *testing.B) {
-						b.Run("floats", func(b *testing.B) {
-							b.Run("json", func(b *testing.B) {
+					b.Run("op=unmarshal", func(b *testing.B) {
+						b.Run("type=floats", func(b *testing.B) {
+							b.Run("encoder=json", func(b *testing.B) {
 								b.ReportAllocs()
-								for i := 0; i < b.N; i++ {
+								for b.Loop() {
 									var m model.Matrix
 									if err := json.Unmarshal(floatBytes, &m); err != nil {
 										b.Fatal(err)
@@ -190,9 +190,9 @@ func BenchmarkSamplesJsonSerialization(b *testing.B) {
 								}
 							})
 							if supportsJSONv2 {
-								b.Run("jsonv2", func(b *testing.B) {
+								b.Run("encoder=jsonv2", func(b *testing.B) {
 									b.ReportAllocs()
-									for i := 0; i < b.N; i++ {
+									for b.Loop() {
 										var m model.Matrix
 										if err := jsonv2Unmarshal(floatBytes, &m); err != nil {
 											b.Fatal(err)
@@ -200,9 +200,9 @@ func BenchmarkSamplesJsonSerialization(b *testing.B) {
 									}
 								})
 							}
-							b.Run("jsoniter", func(b *testing.B) {
+							b.Run("encoder=jsoniter", func(b *testing.B) {
 								b.ReportAllocs()
-								for i := 0; i < b.N; i++ {
+								for b.Loop() {
 									var m model.Matrix
 									if err := jsoniter.Unmarshal(floatBytes, &m); err != nil {
 										b.Fatal(err)
@@ -210,10 +210,10 @@ func BenchmarkSamplesJsonSerialization(b *testing.B) {
 								}
 							})
 						})
-						b.Run("histograms", func(b *testing.B) {
-							b.Run("json", func(b *testing.B) {
+						b.Run("type=histograms", func(b *testing.B) {
+							b.Run("encoder=json", func(b *testing.B) {
 								b.ReportAllocs()
-								for i := 0; i < b.N; i++ {
+								for b.Loop() {
 									var m model.Matrix
 									if err := json.Unmarshal(histogramBytes, &m); err != nil {
 										b.Fatal(err)
@@ -221,9 +221,9 @@ func BenchmarkSamplesJsonSerialization(b *testing.B) {
 								}
 							})
 							if supportsJSONv2 {
-								b.Run("jsonv2", func(b *testing.B) {
+								b.Run("encoder=jsonv2", func(b *testing.B) {
 									b.ReportAllocs()
-									for i := 0; i < b.N; i++ {
+									for b.Loop() {
 										var m model.Matrix
 										if err := jsonv2Unmarshal(histogramBytes, &m); err != nil {
 											b.Fatal(err)
@@ -231,9 +231,9 @@ func BenchmarkSamplesJsonSerialization(b *testing.B) {
 									}
 								})
 							}
-							b.Run("jsoniter", func(b *testing.B) {
+							b.Run("encoder=jsoniter", func(b *testing.B) {
 								b.ReportAllocs()
-								for i := 0; i < b.N; i++ {
+								for b.Loop() {
 									var m model.Matrix
 									if err := jsoniter.Unmarshal(histogramBytes, &m); err != nil {
 										b.Fatal(err)
