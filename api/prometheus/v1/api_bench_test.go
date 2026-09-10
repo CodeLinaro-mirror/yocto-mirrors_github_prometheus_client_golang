@@ -15,6 +15,7 @@ package v1
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 	"testing"
@@ -245,6 +246,134 @@ func BenchmarkSamplesJsonSerialization(b *testing.B) {
 						})
 					})
 				})
+			}
+		})
+	}
+}
+
+func BenchmarkAPIResponse(b *testing.B) {
+	type apiResponseTest struct {
+		name string
+		data []byte
+	}
+
+	var testcases []apiResponseTest
+	addTestcase := func(name string, v any) {
+		data, err := json.Marshal(v)
+		if err != nil {
+			b.Fatal(err)
+		}
+		testcases = append(testcases, apiResponseTest{
+			name: name,
+			data: data,
+		})
+	}
+
+	addTestcase("AlertsResult", AlertsResult{Alerts: []Alert{{
+		ActiveAt:    time.Unix(1, 0),
+		Annotations: model.LabelSet{"key": "value"},
+		Labels:      model.LabelSet{"key": "value"},
+		State:       AlertStateFiring,
+		Value:       "somevalue",
+	}}})
+	addTestcase("AlertManagersResult", AlertManagersResult{
+		Active:  []AlertManager{{URL: "https://example.com"}},
+		Dropped: []AlertManager{{URL: "https://example.com"}},
+	})
+	addTestcase("ConfigResult", ConfigResult{
+		YAML: "somekey: somevalue",
+	})
+	addTestcase("FlagsResult", FlagsResult{"key": "value"})
+	addTestcase("BuildinfoResult", BuildinfoResult{
+		Version:   "1.0.0",
+		Revision:  "v12",
+		Branch:    "dev",
+		BuildUser: "default",
+		BuildDate: "2026-01-02",
+		GoVersion: "1.26.6",
+	})
+	addTestcase("RuntimeinfoResult", RuntimeinfoResult{})
+	addTestcase("model.LabelValues", model.LabelValues{"value1", "value2"})
+	addTestcase("SnapshotResult", SnapshotResult{Name: "name"})
+	addTestcase("TargetsResult", TargetsResult{
+		Active:  []ActiveTarget{},
+		Dropped: []DroppedTarget{},
+	})
+	addTestcase("[]MetricMetadata", []MetricMetadata{{
+		Target: map[string]string{"key": "value"},
+		Metric: "mymetric",
+		Type:   MetricTypeGauge,
+		Help:   "help text",
+		Unit:   "unit",
+	}})
+	addTestcase("map[string][]Metadata", map[string][]Metadata{
+		"default": {{
+			Type: "default",
+			Help: "help text",
+			Unit: "unit",
+		}},
+	})
+	addTestcase("TSDBResult", TSDBResult{
+		HeadStats: TSDBHeadStats{
+			NumSeries:     1000,
+			NumLabelPairs: 1000,
+			ChunkCount:    10,
+			MinTime:       1,
+			MaxTime:       1000,
+		},
+		SeriesCountByMetricName:     []Stat{{Name: "statname", Value: 12345}},
+		LabelValueCountByLabelName:  []Stat{{Name: "statname", Value: 12345}},
+		MemoryInBytesByLabelName:    []Stat{{Name: "statname", Value: 12345}},
+		SeriesCountByLabelValuePair: []Stat{{Name: "statname", Value: 12345}},
+	})
+	addTestcase("TSDBBlocksResult", TSDBBlocksResult{
+		Status: "ok",
+		Data: TSDBBlocksData{
+			Blocks: []TSDBBlocksBlockMetadata{{
+				Ulid:    "ulid",
+				MinTime: 1,
+				MaxTime: 1000,
+				Stats: TSDBBlocksStats{
+					NumSamples: 1000,
+					NumSeries:  1000,
+					NumChunks:  1000,
+				},
+				Compaction: TSDBBlocksCompaction{
+					Level:   1234,
+					Sources: []string{"sourcea"},
+				},
+				Version: 1,
+			}},
+		},
+	})
+	addTestcase("WalReplayStatus", WalReplayStatus{Min: 1, Max: 1000, Current: 500})
+	addTestcase("[]ExemplarQueryResult", []ExemplarQueryResult{{
+		SeriesLabels: model.LabelSet{"key": "value"},
+		Exemplars: []Exemplar{{
+			Labels:    model.LabelSet{"key": "value"},
+			Value:     model.SampleValue(1234.567),
+			Timestamp: model.Time(1234),
+		}},
+	}})
+
+	for _, size := range []int{10, 100, 1000} {
+		floats, histograms := generateData(size, size)
+		addTestcase(fmt.Sprintf("floats-%d", size), floats)
+		addTestcase(fmt.Sprintf("histograms-%d", size), histograms)
+	}
+
+	for _, tc := range testcases {
+		data, err := json.Marshal(apiResponse{Status: "ok", Data: tc.data})
+		if err != nil {
+			b.Fatal(err)
+		}
+		b.Log(string(data))
+		b.Run(tc.name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				var r apiResponse
+				if err := json.Unmarshal(data, &r); err != nil {
+					b.Fatal(err)
+				}
 			}
 		})
 	}
