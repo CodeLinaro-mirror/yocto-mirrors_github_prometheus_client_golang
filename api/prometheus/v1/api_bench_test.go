@@ -13,8 +13,10 @@
 package v1
 
 import (
+	"bytes"
 	"encoding/json"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -246,4 +248,76 @@ func BenchmarkSamplesJsonSerialization(b *testing.B) {
 			}
 		})
 	}
+}
+
+func BenchmarkRuleGroup(b *testing.B) {
+	alertingRuleJSON, err := json.Marshal(struct {
+		Type         RuleType `json:"type"`
+		AlertingRule `json:""`
+	}{
+		Type: RuleTypeAlerting,
+		AlertingRule: AlertingRule{
+			Name:        "HighRequestLatency",
+			Query:       "job:request_latency_seconds:mean5m{job=\"myjob\"} > 0.5",
+			Duration:    600,
+			Labels:      model.LabelSet{"severity": "page"},
+			Annotations: model.LabelSet{"summary": "High request latency"},
+			Alerts: []*Alert{{
+				ActiveAt:    time.Now().UTC(),
+				Annotations: model.LabelSet{"summary": "High request latency"},
+				Labels:      model.LabelSet{"alertname": "HighRequestLatency", "severity": "page"},
+				State:       AlertStateFiring,
+				Value:       "1e+00",
+			}},
+			Health:         RuleHealthGood,
+			LastError:      "Unknown",
+			EvaluationTime: 1,
+			LastEvaluation: time.Now().Round(time.Millisecond).UTC(),
+			State:          "state",
+		},
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.Log("alerting:", string(alertingRuleJSON))
+
+	recordingRuleJSON, err := json.Marshal(struct {
+		Type          RuleType `json:"type"`
+		RecordingRule `json:""`
+	}{
+		Type: RuleTypeRecording,
+		RecordingRule: RecordingRule{
+			Name:           "job:http_inprogress_requests:sum",
+			Query:          "sum(http_inprogress_requests) by (job)",
+			Labels:         model.LabelSet{"severity": "page"},
+			Health:         RuleHealthGood,
+			LastError:      "Unknown",
+			EvaluationTime: 1,
+			LastEvaluation: time.Now().Round(time.Millisecond).UTC(),
+		},
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.Log("recording:", string(recordingRuleJSON))
+
+	data := []byte(`{
+"name":"myname","file":"myfile","interval":0.0000005,"rules":[` +
+		string(alertingRuleJSON) + strings.Repeat(","+string(alertingRuleJSON), 100) + strings.Repeat(","+string(recordingRuleJSON), 100) +
+		`]}`)
+
+	b.Run("streaming", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			if err := json.NewDecoder(bytes.NewReader(data)).Decode(&RuleGroup{}); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run("unmarshal", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			if err := json.Unmarshal(data, &RuleGroup{}); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
 }
