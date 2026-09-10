@@ -837,11 +837,11 @@ func (r *RecordingRule) unmarshalTypeCheckedJSON(b []byte) error {
 
 func (qr *queryResult) UnmarshalJSON(b []byte) error {
 	v := struct {
-		Type   model.ValueType `json:"resultType"`
-		Result json.RawMessage `json:"result"`
+		Type   model.ValueType   `json:"resultType"`
+		Result gojson.RawMessage `json:"result"`
 	}{}
 
-	err := json.Unmarshal(b, &v)
+	err := gojson.Unmarshal(b, &v)
 	if err != nil {
 		return err
 	}
@@ -1184,7 +1184,7 @@ func (h *httpAPI) Query(ctx context.Context, query string, ts time.Time, opts ..
 	}
 
 	var qres queryResult
-	return qres.v, warnings, infos, json.Unmarshal(body, &qres)
+	return qres.v, warnings, infos, gojson.Unmarshal(body, &qres)
 }
 
 func (h *httpAPI) QueryRange(ctx context.Context, query string, r Range, opts ...Option) (model.Value, Warnings, Infos, error) {
